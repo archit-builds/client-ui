@@ -9,16 +9,36 @@ import {
 import Link from "next/link";
 import { Phone, ShoppingBasket } from "lucide-react";
 import { Button } from "../ui/button";
+import { Tenant } from "@/lib/types";
 
-const Header = () => {
+const Header = async () => {
+  let restaurants: { data: Tenant[] } = { data: [] };
+
+  try {
+    const tenantsResponse = await fetch(
+      `${process.env.BACKEND_URL}/api/auth/tenants?perPage=100`,
+      {
+        next: {
+          revalidate: 3600, // 1 hour
+        },
+      },
+    );
+
+    if (tenantsResponse.ok) {
+      restaurants = await tenantsResponse.json();
+    }
+  } catch {
+    // Backend unavailable — render header with empty restaurant list
+  }
+
   return (
-    <header className="bg-white border-b border-gray-100 px-6">
-      <nav className="container py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
+    <header className="bg-white">
+      <nav className="container py-5 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
           <svg
             data-testid="logo"
-            width="80"
-            height="24"
+            width="90"
+            height="27"
             viewBox="0 0 90 27"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -36,18 +56,22 @@ const Header = () => {
             />
           </svg>
           <Select>
-            <SelectTrigger className="w-[150px] h-8 text-sm focus:ring-0">
+            <SelectTrigger className="w-[180px] focus:ring-0">
               <SelectValue placeholder="Select Restaurant" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="cheesy-delight">Cheesy Delight</SelectItem>
-              <SelectItem value="pizza-hut">Pizza Hut</SelectItem>
-              <SelectItem value="kids-corner">Kids corner</SelectItem>
+              {restaurants.data.map((restaurant) => {
+                return (
+                  <SelectItem key={restaurant.id} value={restaurant.id}>
+                    {restaurant.name}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-x-6">
-          <ul className="flex items-center text-sm font-medium space-x-5">
+        <div className="flex items-center gap-x-4">
+          <ul className="flex items-center font-medium space-x-4">
             <li>
               <Link className="hover:text-primary" href={"/"}>
                 Menu
@@ -63,12 +87,12 @@ const Header = () => {
             <Link href="/cart">
               <ShoppingBasket className="hover:text-primary" />
             </Link>
-            <span className="absolute -top-3 -right-4 h-5 w-5 flex items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+            <span className="absolute -top-4 -right-5 h-6 w-6 flex items-center justify-center rounded-full bg-primary font-bold text-white">
               3
             </span>
           </div>
-          <div className="flex items-center gap-x-1.5 text-sm text-gray-600">
-            <Phone size={15} />
+          <div className="flex items-center ml-12">
+            <Phone />
             <span>+91 9800 098 998</span>
           </div>
           <Button size={"sm"}>Logout</Button>
