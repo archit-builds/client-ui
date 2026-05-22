@@ -77,9 +77,9 @@ const ProductModal = ({ open, onClose, product }: Props) => {
         </button>
 
         {/* Two-column body */}
-        <div className="flex min-h-96">
+        <div className="flex flex-col sm:flex-row min-h-96">
           {/* LEFT ~38% — image only, white bg */}
-          <div className="w-[38%] shrink-0 flex items-center justify-center bg-white p-6 border-r border-gray-100">
+          <div className="w-full sm:w-[38%] shrink-0 flex items-center justify-center bg-white p-6 sm:border-r border-b sm:border-b-0 border-gray-100">
             <div className="relative w-44 h-44">
               <Image
                 src={
@@ -96,7 +96,7 @@ const ProductModal = ({ open, onClose, product }: Props) => {
           </div>
 
           {/* RIGHT ~62% — name, config, footer */}
-          <div className="w-[62%] flex flex-col">
+          <div className="w-full sm:w-[62%] flex flex-col">
             {/* Name + description */}
             <div className="px-6 pt-5 pb-4">
               <h2 className="text-xl font-bold text-gray-900 leading-tight">
@@ -123,7 +123,7 @@ const ProductModal = ({ open, onClose, product }: Props) => {
                         onClick={() => setSelectedSize(size.label)}
                         className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all duration-150 ${
                           isSelected
-                            ? "border-orange-400 text-orange-500 bg-white"
+                            ? "border-primary text-primary bg-white"
                             : "border-gray-200 text-gray-600 bg-white hover:border-gray-300"
                         }`}
                       >
@@ -148,12 +148,12 @@ const ProductModal = ({ open, onClose, product }: Props) => {
                         onClick={() => toggleTopping(topping.id)}
                         className={`relative flex flex-col items-center gap-1.5 pt-4 pb-3 px-2 rounded-xl border transition-all duration-150 ${
                           isSelected
-                            ? "border-orange-300 bg-white shadow-sm"
+                            ? "border-primary bg-white shadow-sm"
                             : "border-gray-200 bg-white hover:border-gray-300"
                         }`}
                       >
                         {isSelected && (
-                          <span className="absolute top-2 right-2 h-4 w-4 flex items-center justify-center rounded-full bg-orange-400">
+                          <span className="absolute top-2 right-2 h-4 w-4 flex items-center justify-center rounded-full bg-primary">
                             <svg viewBox="0 0 12 12" className="h-2.5 w-2.5">
                               <path
                                 d="M2 6l3 3 5-5"

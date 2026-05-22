@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import {
   Card,
@@ -56,8 +58,9 @@ const ProductCard = ({ product, onChoose }: PropTypes) => {
           <span className="font-bold">₹{basePrice}</span>
         </p>
         <Button
+          variant="outline"
           onClick={onChoose}
-          className="bg-orange-200 hover:bg-orange-300 text-orange-500 px-6 py-2 rounded-full shadow hover:shadow-lg outline-none focus:outline-none ease-linear transition-all duration-150"
+          className="text-primary border-primary hover:bg-primary hover:text-primary-foreground px-6 py-2 rounded-full shadow hover:shadow-lg transition-all duration-150"
         >
           Choose
         </Button>

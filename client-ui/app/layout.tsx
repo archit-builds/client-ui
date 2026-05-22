@@ -21,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
+        suppressHydrationWarning
         className={`${manrope.variable} font-[family-name:var(--font-manrope)] antialiased`}
       >
         <Header />

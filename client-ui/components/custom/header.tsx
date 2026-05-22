@@ -1,15 +1,9 @@
 import React from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import Link from "next/link";
 import { Phone, ShoppingBasket } from "lucide-react";
-import { Button } from "../ui/button";
 import { Tenant } from "@/lib/types";
+import RestaurantSelect from "./restaurant-select";
+import LogoutButton from "./logout-button";
 
 const Header = async () => {
   let restaurants: { data: Tenant[] } = { data: [] };
@@ -27,13 +21,13 @@ const Header = async () => {
     if (tenantsResponse.ok) {
       restaurants = await tenantsResponse.json();
     }
-  } catch {
-    // Backend unavailable — render header with empty restaurant list
+  } catch (error) {
+    console.error("Failed to fetch tenants:", error);
   }
 
   return (
     <header className="bg-white">
-      <nav className="container py-5 flex items-center justify-between">
+      <nav className="container py-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <svg
             data-testid="logo"
@@ -55,20 +49,7 @@ const Header = async () => {
               fill="#484848"
             />
           </svg>
-          <Select>
-            <SelectTrigger className="w-[180px] focus:ring-0">
-              <SelectValue placeholder="Select Restaurant" />
-            </SelectTrigger>
-            <SelectContent>
-              {restaurants.data.map((restaurant) => {
-                return (
-                  <SelectItem key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+          <RestaurantSelect restaurants={restaurants.data} />
         </div>
         <div className="flex items-center gap-x-4">
           <ul className="flex items-center font-medium space-x-4">
@@ -87,15 +68,15 @@ const Header = async () => {
             <Link href="/cart">
               <ShoppingBasket className="hover:text-primary" />
             </Link>
-            <span className="absolute -top-4 -right-5 h-6 w-6 flex items-center justify-center rounded-full bg-primary font-bold text-white">
+            <span className="absolute -top-3 -right-4 h-5 w-5 flex items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
               3
             </span>
           </div>
-          <div className="flex items-center ml-12">
-            <Phone />
-            <span>+91 9800 098 998</span>
+          <div className="hidden md:flex items-center gap-x-2">
+            <Phone size={18} className="text-primary" />
+            <span className="text-sm">+91 9800 098 998</span>
           </div>
-          <Button size={"sm"}>Logout</Button>
+          <LogoutButton />
         </div>
       </nav>
     </header>

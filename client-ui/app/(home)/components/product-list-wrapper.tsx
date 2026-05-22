@@ -7,7 +7,7 @@ const ProductListWrapper = async () => {
     `${process.env.BACKEND_URL}/api/catalog/categories`,
     {
       next: {
-        revalidate: 3600, // 1 hour
+        revalidate: 0, // Disabled cache for development
       },
     }
   );
@@ -19,10 +19,10 @@ const ProductListWrapper = async () => {
   const categories: Category[] = await categoryResponse.json();
 
   const productsResponse = await fetch(
-    `${process.env.BACKEND_URL}/api/catalog/products?perPage=100&tenantId=10`,
+    `${process.env.BACKEND_URL}/api/catalog/products/public?perPage=100&tenantId=10`,
     {
       next: {
-        revalidate: 3600, // 1 hour
+        revalidate: 0, // Disabled cache for development
       },
     }
   );

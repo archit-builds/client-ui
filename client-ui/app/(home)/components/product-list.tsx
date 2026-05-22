@@ -1,6 +1,9 @@
+"use client";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import React from "react";
+import React, { useState } from "react";
 import ProductCard from "./product-card";
+import ProductModal from "./product-modal";
 import { Category, Product } from "@/lib/types";
 
 const ProductList = ({
@@ -10,10 +13,12 @@ const ProductList = ({
   categories: Category[];
   products: Product[];
 }) => {
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
   return (
     <section>
       <div className="container py-12">
-        <Tabs defaultValue={categories[0]._id}>
+        <Tabs defaultValue={categories[0]?._id}>
           <TabsList>
             {categories.map((category) => {
               return (
@@ -26,33 +31,32 @@ const ProductList = ({
                 </TabsTrigger>
               );
             })}
-            {/* <TabsTrigger value="beverages" className="text-md">
-                    Beverages
-                </TabsTrigger> */}
           </TabsList>
           {categories.map((category) => {
             return (
               <TabsContent key={category._id} value={category._id}>
-                <div className="grid grid-cols-4 gap-6 mt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
                   {products
                     .filter((product) => product.category?._id === category._id)
                     .map((product) => (
-                      <ProductCard product={product} key={product._id} />
+                      <ProductCard
+                        product={product}
+                        key={product._id}
+                        onChoose={() => setSelectedProduct(product)}
+                      />
                     ))}
                 </div>
               </TabsContent>
             );
           })}
-
-          {/* <TabsContent value="beverages">
-                <div className="grid grid-cols-4 gap-6 mt-6">
-                    {products.map((product) => (
-                        <ProductCard product={product} key={product.id} />
-                    ))}
-                </div>
-            </TabsContent> */}
         </Tabs>
       </div>
+
+      <ProductModal
+        open={selectedProduct !== null}
+        onClose={() => setSelectedProduct(null)}
+        product={selectedProduct}
+      />
     </section>
   );
 };
