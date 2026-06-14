@@ -40,3 +40,12 @@ export type Product = {
   isPublish: boolean;
   createdAt: string;
 };
+
+export type Topping = {
+  _id: string;
+  name: string;
+  image: string;
+  price: number;
+  categoryId?: string;
+  isPublish: boolean;
+};

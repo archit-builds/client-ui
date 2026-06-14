@@ -5,7 +5,13 @@ import ProductListWrapper from './components/product-list-wrapper';
 import ProductListSkeleton from './components/product-list-skeleton';
 import { Suspense } from 'react';
 
-export default async function Home() {
+export default async function Home({
+    searchParams,
+}: {
+    searchParams: Promise<{ tenantId?: string }>;
+}) {
+    const { tenantId } = await searchParams;
+
     return (
         <>
             <section className="bg-white">
@@ -28,7 +34,7 @@ export default async function Home() {
                 </div>
             </section>
             <Suspense fallback={<ProductListSkeleton />}>
-                <ProductListWrapper />
+                <ProductListWrapper tenantId={tenantId} />
             </Suspense>
         </>
     );

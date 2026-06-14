@@ -1,9 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import { Phone, ShoppingBasket } from "lucide-react";
+import { Phone } from "lucide-react";
 import { Tenant } from "@/lib/types";
 import RestaurantSelect from "./restaurant-select";
 import LogoutButton from "./logout-button";
+import CartCounter from "./cart-counter";
 
 const Header = async () => {
   let restaurants: { data: Tenant[] } = { data: [] };
@@ -64,14 +65,8 @@ const Header = async () => {
               </Link>
             </li>
           </ul>
-          <div className="relative">
-            <Link href="/cart">
-              <ShoppingBasket className="hover:text-primary" />
-            </Link>
-            <span className="absolute -top-3 -right-4 h-5 w-5 flex items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-              3
-            </span>
-          </div>
+          <CartCounter />
+         
           <div className="hidden md:flex items-center gap-x-2">
             <Phone size={18} className="text-primary" />
             <span className="text-sm">+91 9800 098 998</span>

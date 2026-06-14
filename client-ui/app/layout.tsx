@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/custom/header";
+import StoreProvider from "./StoreProvider";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -20,6 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <StoreProvider>
       <body
         suppressHydrationWarning
         className={`${manrope.variable} font-[family-name:var(--font-manrope)] antialiased`}
@@ -27,6 +29,7 @@ export default function RootLayout({
         <Header />
         <main>{children}</main>
       </body>
+      </StoreProvider>
     </html>
   );
 }

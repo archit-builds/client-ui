@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { ShoppingCart, X } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Product } from "@/lib/types";
+import { Product, Topping } from "@/lib/types";
+import { useAppDispatch } from "@/lib/store/hooks";
+import { addToCart } from "@/lib/store/features/cart/cartSlice";
 
 const SIZES = [
   { label: "Small", price: 299 },
@@ -15,46 +17,33 @@ const SIZES = [
 
 type SizeLabel = (typeof SIZES)[number]["label"];
 
-const TOPPINGS = [
-  {
-    id: "chicken",
-    name: "Chicken",
-    price: 50,
-    image: "https://placehold.co/80x80/fef3c7/d97706?text=🍗",
-  },
-  {
-    id: "jalapeno",
-    name: "Jalapeño",
-    price: 50,
-    image: "https://placehold.co/80x80/dcfce7/16a34a?text=🌶",
-  },
-  {
-    id: "cheese",
-    name: "Cheese",
-    price: 50,
-    image: "https://placehold.co/80x80/fef9c3/ca8a04?text=🧀",
-  },
-];
-
 type Props = {
   open: boolean;
   onClose: () => void;
   product: Product | null;
+  toppings: Topping[];
 };
 
-const ProductModal = ({ open, onClose, product }: Props) => {
+const ProductModal = ({ open, onClose, product, toppings }: Props) => {
+  const dispatch = useAppDispatch();
   const [selectedSize, setSelectedSize] = useState<SizeLabel>("Medium");
   const [selectedToppings, setSelectedToppings] = useState<Set<string>>(
     new Set(),
   );
 
+  // Reset selections when a new product is opened
+  useEffect(() => {
+    if (open) {
+      setSelectedSize("Medium");
+      setSelectedToppings(new Set());
+    }
+  }, [open, product?._id]);
+
   if (!product) return null;
 
   const sizePrice = SIZES.find((s) => s.label === selectedSize)?.price ?? 499;
-  const toppingsPrice = [...selectedToppings].reduce((sum, id) => {
-    const topping = TOPPINGS.find((t) => t.id === id);
-    return sum + (topping?.price ?? 0);
-  }, 0);
+  const chosenToppings = toppings.filter((t) => selectedToppings.has(t._id));
+  const toppingsPrice = chosenToppings.reduce((sum, t) => sum + t.price, 0);
   const totalPrice = sizePrice + toppingsPrice;
 
   const toggleTopping = (id: string) => {
@@ -63,6 +52,20 @@ const ProductModal = ({ open, onClose, product }: Props) => {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
+
+  const handleAddToCart = () => {
+    dispatch(
+      addToCart({
+        productId: product._id,
+        name: product.name,
+        image: product.image,
+        size: selectedSize,
+        basePrice: sizePrice,
+        toppings: chosenToppings,
+      }),
+    );
+    onClose();
   };
 
   return (
@@ -135,61 +138,63 @@ const ProductModal = ({ open, onClose, product }: Props) => {
               </div>
 
               {/* Extra toppings */}
-              <div>
-                <p className="text-sm font-semibold text-gray-700 mb-2.5">
-                  Extra toppings
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {TOPPINGS.map((topping) => {
-                    const isSelected = selectedToppings.has(topping.id);
-                    return (
-                      <button
-                        key={topping.id}
-                        onClick={() => toggleTopping(topping.id)}
-                        className={`relative flex flex-col items-center gap-1.5 pt-4 pb-3 px-2 rounded-xl border transition-all duration-150 ${
-                          isSelected
-                            ? "border-primary bg-white shadow-sm"
-                            : "border-gray-200 bg-white hover:border-gray-300"
-                        }`}
-                      >
-                        {isSelected && (
-                          <span className="absolute top-2 right-2 h-4 w-4 flex items-center justify-center rounded-full bg-primary">
-                            <svg viewBox="0 0 12 12" className="h-2.5 w-2.5">
-                              <path
-                                d="M2 6l3 3 5-5"
-                                stroke="white"
-                                strokeWidth="1.5"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
+              {toppings.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2.5">
+                    Extra toppings
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {toppings.map((topping) => {
+                      const isSelected = selectedToppings.has(topping._id);
+                      return (
+                        <button
+                          key={topping._id}
+                          onClick={() => toggleTopping(topping._id)}
+                          className={`relative flex flex-col items-center gap-1.5 pt-4 pb-3 px-2 rounded-xl border transition-all duration-150 ${
+                            isSelected
+                              ? "border-primary bg-white shadow-sm"
+                              : "border-gray-200 bg-white hover:border-gray-300"
+                          }`}
+                        >
+                          {isSelected && (
+                            <span className="absolute top-2 right-2 h-4 w-4 flex items-center justify-center rounded-full bg-primary">
+                              <svg viewBox="0 0 12 12" className="h-2.5 w-2.5">
+                                <path
+                                  d="M2 6l3 3 5-5"
+                                  stroke="white"
+                                  strokeWidth="1.5"
+                                  fill="none"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </span>
+                          )}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={topping.image}
+                            alt={topping.name}
+                            className="w-14 h-14 rounded-lg object-cover"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            {topping.name}
                           </span>
-                        )}
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={topping.image}
-                          alt={topping.name}
-                          className="w-14 h-14 rounded-lg object-cover"
-                        />
-                        <span className="text-sm font-medium text-gray-700">
-                          {topping.name}
-                        </span>
-                        <span className="text-sm font-semibold text-gray-800">
-                          ₹{topping.price}
-                        </span>
-                      </button>
-                    );
-                  })}
+                          <span className="text-sm font-semibold text-gray-800">
+                            ₹{topping.price}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Footer */}
             <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 mt-auto">
               <p className="text-2xl font-bold text-gray-900">₹{totalPrice}</p>
               <Button
-                onClick={onClose}
+                onClick={handleAddToCart}
                 className="flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold bg-primary hover:bg-primary/90 transition-all duration-150"
               >
                 <ShoppingCart size={15} />
@@ -204,3 +209,4 @@ const ProductModal = ({ open, onClose, product }: Props) => {
 };
 
 export default ProductModal;
+

@@ -1,15 +1,19 @@
 import React from "react";
-import { Category, Product } from "@/lib/types";
+import { Category, Product, Topping } from "@/lib/types";
 import ProductList from "./product-list";
 
-const ProductListWrapper = async () => {
+interface ProductListWrapperProps {
+  tenantId?: string;
+}
+
+const ProductListWrapper = async ({ tenantId }: ProductListWrapperProps) => {
   const categoryResponse = await fetch(
     `${process.env.BACKEND_URL}/api/catalog/categories`,
     {
       next: {
         revalidate: 0, // Disabled cache for development
       },
-    }
+    },
   );
 
   if (!categoryResponse.ok) {
@@ -18,13 +22,16 @@ const ProductListWrapper = async () => {
 
   const categories: Category[] = await categoryResponse.json();
 
+  // Build tenant query param — if none selected, omit it (fetches all)
+  const tenantQuery = tenantId ? `&tenantId=${tenantId}` : "";
+
   const productsResponse = await fetch(
-    `${process.env.BACKEND_URL}/api/catalog/products/public?perPage=100&tenantId=10`,
+    `${process.env.BACKEND_URL}/api/catalog/products/public?perPage=100${tenantQuery}`,
     {
       next: {
         revalidate: 0, // Disabled cache for development
       },
-    }
+    },
   );
 
   if (!productsResponse.ok) {
@@ -33,7 +40,28 @@ const ProductListWrapper = async () => {
 
   const productsData: { data: Product[] } = await productsResponse.json();
 
-  return <ProductList categories={categories} products={productsData.data} />;
+  const toppingsResponse = await fetch(
+    `${process.env.BACKEND_URL}/api/catalog/toppings/public?perPage=100${tenantQuery}`,
+    {
+      next: {
+        revalidate: 0, // Disabled cache for development
+      },
+    },
+  );
+
+  if (!toppingsResponse.ok) {
+    throw new Error("Failed to fetch toppings");
+  }
+
+  const toppingsData: { data: Topping[] } = await toppingsResponse.json();
+
+  return (
+    <ProductList
+      categories={categories}
+      products={productsData.data}
+      toppings={toppingsData.data}
+    />
+  );
 };
 
 export default ProductListWrapper;
