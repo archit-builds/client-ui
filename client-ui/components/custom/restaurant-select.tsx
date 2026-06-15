@@ -30,7 +30,7 @@ const RestaurantSelect = ({ restaurants }: { restaurants: Tenant[] }) => {
       <SelectContent position="popper">
         {restaurants.length > 0 ? (
           restaurants.map((restaurant) => (
-            <SelectItem key={restaurant.id} value={restaurant.id}>
+            <SelectItem key={restaurant.id} value={String(restaurant.id)}>
               {restaurant.name}
             </SelectItem>
           ))

@@ -2,6 +2,27 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../../store";
 import { Topping } from "@/lib/types";
 
+// ── localStorage persistence helpers ─────────────────────────────────────────
+const CART_STORAGE_KEY = "cart_items";
+
+export const loadCartFromStorage = (): CartItem[] => {
+    if (typeof window === "undefined") return [];
+    try {
+        const raw = localStorage.getItem(CART_STORAGE_KEY);
+        return raw ? (JSON.parse(raw) as CartItem[]) : [];
+    } catch {
+        return [];
+    }
+};
+
+export const saveCartToStorage = (items: CartItem[]): void => {
+    try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    } catch {
+        // storage quota exceeded or unavailable — silently ignore
+    }
+};
+
 // ── Cart item shape ──────────────────────────────────────────────────────────
 export interface CartItem {
     /** Unique key per item: productId + size (so same product in diff sizes = diff rows) */
@@ -24,8 +45,9 @@ interface CartState {
     items: CartItem[];
 }
 
+// Seed initial state from localStorage (empty array on SSR / first visit)
 const initialState: CartState = {
-    items: [],
+    items: loadCartFromStorage(),
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

@@ -1,11 +1,20 @@
-import { configureStore } from '@reduxjs/toolkit'
-import cartReducer from './features/cart/cartSlice'
+import { configureStore, Middleware } from '@reduxjs/toolkit'
+import cartReducer, { saveCartToStorage } from './features/cart/cartSlice'
+
+/** After every action, persist the cart items array to localStorage. */
+const cartPersistenceMiddleware: Middleware = (storeAPI) => (next) => (action) => {
+  const result = next(action)
+  saveCartToStorage(storeAPI.getState().cart.items)
+  return result
+}
 
 export const makeStore = () => {
   return configureStore({
     reducer: {
       cart: cartReducer,
     },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(cartPersistenceMiddleware),
   })
 }
 
