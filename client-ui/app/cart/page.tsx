@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import {
   selectCartItems,
-  selectCartTotal,
   incrementQty,
   decrementQty,
   removeFromCart,
@@ -18,7 +17,6 @@ import {
 export default function CartPage() {
   const dispatch = useAppDispatch();
   const items = useAppSelector(selectCartItems);
-  const grandTotal = useAppSelector(selectCartTotal);
 
   // ── Empty state ────────────────────────────────────────────────────────────
   if (items.length === 0) {
@@ -63,137 +61,111 @@ export default function CartPage() {
         </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* ── Item list ─────────────────────────────────────────────────── */}
-        <div className="flex-1 space-y-4">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-4"
-            >
-              {/* Product image */}
-              <div className="relative w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-gray-50">
-                <Image
-                  src={
-                    item.image.startsWith("http") ||
-                    item.image.startsWith("/")
-                      ? item.image
-                      : `/${item.image}`
-                  }
-                  alt={item.name}
-                  fill
-                  className="object-contain p-1"
-                />
+      {/* ── Item list ──────────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-4"
+          >
+            {/* Product image */}
+            <div className="relative w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-gray-50">
+              <Image
+                src={
+                  item.image.startsWith("http") ||
+                  item.image.startsWith("/")
+                    ? item.image
+                    : `/${item.image}`
+                }
+                alt={item.name}
+                fill
+                className="object-contain p-1"
+              />
+            </div>
+
+            {/* Details */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-semibold text-gray-900 truncate">
+                    {item.name}
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Size: {item.size}
+                  </p>
+                </div>
+                <button
+                  onClick={() => dispatch(removeFromCart(item.id))}
+                  className="p-1.5 rounded-full hover:bg-red-50 text-gray-300 hover:text-red-400 transition-colors shrink-0"
+                  aria-label="Remove item"
+                >
+                  <Trash2 size={15} />
+                </button>
               </div>
 
-              {/* Details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 truncate">
-                      {item.name}
-                    </h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Size: {item.size}
-                    </p>
-                  </div>
+              {/* Toppings */}
+              {item.toppings.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {item.toppings.map((t) => (
+                    <span
+                      key={t._id}
+                      className="text-xs bg-orange-50 text-primary rounded-full px-2 py-0.5 border border-orange-100"
+                    >
+                      + {t.name} (₹{t.price})
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Price + qty controls */}
+              <div className="flex items-center justify-between mt-3">
+                <p className="font-bold text-gray-900">
+                  ₹{item.totalPrice * item.qty}
+                  {item.qty > 1 && (
+                    <span className="text-xs text-gray-400 font-normal ml-1">
+                      (₹{item.totalPrice} × {item.qty})
+                    </span>
+                  )}
+                </p>
+
+                {/* Qty stepper */}
+                <div className="flex items-center gap-2 border border-gray-200 rounded-full px-2 py-1">
                   <button
-                    onClick={() => dispatch(removeFromCart(item.id))}
-                    className="p-1.5 rounded-full hover:bg-red-50 text-gray-300 hover:text-red-400 transition-colors shrink-0"
-                    aria-label="Remove item"
+                    onClick={() => dispatch(decrementQty(item.id))}
+                    className="p-0.5 rounded-full hover:bg-gray-100 transition-colors"
+                    aria-label="Decrease quantity"
                   >
-                    <Trash2 size={15} />
+                    <Minus size={14} className="text-gray-600" />
+                  </button>
+                  <span className="w-5 text-center text-sm font-semibold text-gray-800">
+                    {item.qty}
+                  </span>
+                  <button
+                    onClick={() => dispatch(incrementQty(item.id))}
+                    className="p-0.5 rounded-full hover:bg-gray-100 transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus size={14} className="text-gray-600" />
                   </button>
                 </div>
-
-                {/* Toppings */}
-                {item.toppings.length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {item.toppings.map((t) => (
-                      <span
-                        key={t._id}
-                        className="text-xs bg-orange-50 text-primary rounded-full px-2 py-0.5 border border-orange-100"
-                      >
-                        + {t.name} (₹{t.price})
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Price + qty controls */}
-                <div className="flex items-center justify-between mt-3">
-                  <p className="font-bold text-gray-900">
-                    ₹{item.totalPrice * item.qty}
-                    {item.qty > 1 && (
-                      <span className="text-xs text-gray-400 font-normal ml-1">
-                        (₹{item.totalPrice} × {item.qty})
-                      </span>
-                    )}
-                  </p>
-
-                  {/* Qty stepper */}
-                  <div className="flex items-center gap-2 border border-gray-200 rounded-full px-2 py-1">
-                    <button
-                      onClick={() => dispatch(decrementQty(item.id))}
-                      className="p-0.5 rounded-full hover:bg-gray-100 transition-colors"
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus size={14} className="text-gray-600" />
-                    </button>
-                    <span className="w-5 text-center text-sm font-semibold text-gray-800">
-                      {item.qty}
-                    </span>
-                    <button
-                      onClick={() => dispatch(incrementQty(item.id))}
-                      className="p-0.5 rounded-full hover:bg-gray-100 transition-colors"
-                      aria-label="Increase quantity"
-                    >
-                      <Plus size={14} className="text-gray-600" />
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* ── Order summary ─────────────────────────────────────────────── */}
-        <div className="lg:w-72 shrink-0">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">
-              Order Summary
-            </h2>
-
-            <div className="space-y-2 text-sm">
-              {items.map((item) => (
-                <div key={item.id} className="flex justify-between text-gray-600">
-                  <span className="truncate max-w-[160px]">
-                    {item.name} × {item.qty}
-                    <span className="text-gray-400"> ({item.size})</span>
-                  </span>
-                  <span className="font-medium shrink-0 ml-2">
-                    ₹{item.totalPrice * item.qty}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-gray-100 mt-4 pt-4 flex justify-between font-bold text-gray-900">
-              <span>Grand Total</span>
-              <span className="text-primary text-lg">₹{grandTotal}</span>
-            </div>
-
-            <Button className="w-full mt-5 rounded-full py-5 font-semibold text-sm bg-primary hover:bg-primary/90">
-              Proceed to Checkout
-            </Button>
-
-            <Link href="/">
-              <button className="w-full mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                ← Continue shopping
-              </button>
-            </Link>
           </div>
-        </div>
+        ))}
+      </div>
+
+      {/* ── Actions ────────────────────────────────────────────────────── */}
+      <div className="mt-8 flex flex-col items-center gap-3">
+        <Link href="/checkout" className="w-full max-w-sm">
+          <Button className="w-full rounded-full py-5 font-semibold text-sm bg-primary hover:bg-primary/90">
+            Proceed to Checkout
+          </Button>
+        </Link>
+        <Link href="/">
+          <button className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+            ← Continue shopping
+          </button>
+        </Link>
       </div>
     </section>
   );
