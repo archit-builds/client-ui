@@ -5,7 +5,6 @@ import { loginAction } from "@/lib/actions/login";
 import { initialState } from "@/lib/actions/login-types";
 import Link from "next/link";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(
@@ -13,13 +12,15 @@ export default function LoginPage() {
     initialState
   );
 
-  const router = useRouter();
-
   useEffect(() => {
     if (state.type === "success") {
-      setTimeout(() => router.push("/"), 1000);
+      setTimeout(() => {
+        // Hard navigation — ensures the server re-renders Header with the
+        // new accessToken cookie, switching Login → Logout button.
+        window.location.href = "/";
+      }, 1000);
     }
-  }, [state, router]);
+  }, [state]);
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[oklch(94.409%_0.00973_16.723)]">

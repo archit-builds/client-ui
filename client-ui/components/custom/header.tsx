@@ -1,14 +1,17 @@
 import React from "react";
 import Link from "next/link";
 import { Phone } from "lucide-react";
-import { Tenant } from "@/lib/types";
+import { Tenant, User } from "@/lib/types";
 import RestaurantSelect from "./restaurant-select";
 import LogoutButton from "./logout-button";
 import CartCounter from "./cart-counter";
+import { cookies } from "next/headers";
 
 const Header = async () => {
   let restaurants: { data: Tenant[] } = { data: [] };
+  let user: User | null = null;
 
+  // Fetch tenants
   try {
     const tenantsResponse = await fetch(
       `${process.env.BACKEND_URL}/api/auth/tenants?perPage=100`,
@@ -25,6 +28,31 @@ const Header = async () => {
   } catch (error) {
     console.error("Failed to fetch tenants:", error);
   }
+
+  // Fetch session — read accessToken cookie and call /self
+  try {
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("accessToken")?.value;
+
+    if (accessToken) {
+      const selfResponse = await fetch(
+        `${process.env.BACKEND_URL}/api/auth/auth/self`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          cache: "no-store",
+        },
+      );
+
+      if (selfResponse.ok) {
+        user = await selfResponse.json();
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch session:", error);
+  }
+
 
   return (
     <header className="bg-white">
@@ -71,7 +99,7 @@ const Header = async () => {
             <Phone size={18} className="text-primary" />
             <span className="text-sm">+91 9800 098 998</span>
           </div>
-          <LogoutButton />
+          <LogoutButton user={user} />
         </div>
       </nav>
     </header>
