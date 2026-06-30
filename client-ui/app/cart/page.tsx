@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, ShoppingBasket, ArrowLeft } from "lucide-react";
@@ -13,10 +13,16 @@ import {
   removeFromCart,
   clearCart,
 } from "@/lib/store/features/cart/cartSlice";
+import { useTenantId } from "@/lib/hooks/useTenantId";
 
-export default function CartPage() {
+function CartPageInner() {
   const dispatch = useAppDispatch();
   const items = useAppSelector(selectCartItems);
+  const tenantId = useTenantId();
+
+  // Build tenantId-aware hrefs so the restaurant context is never lost
+  const homeHref = tenantId ? `/?tenantId=${tenantId}` : "/";
+  const checkoutHref = tenantId ? `/checkout?tenantId=${tenantId}` : "/checkout";
 
   // ── Empty state ────────────────────────────────────────────────────────────
   if (items.length === 0) {
@@ -28,7 +34,7 @@ export default function CartPage() {
           Looks like you haven&apos;t added anything yet. Browse the menu and
           pick your favourites!
         </p>
-        <Link href="/">
+        <Link href={homeHref}>
           <Button className="mt-2 rounded-full px-6">Browse Menu</Button>
         </Link>
       </div>
@@ -41,7 +47,7 @@ export default function CartPage() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <Link
-            href="/"
+            href={homeHref}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft size={20} className="text-gray-500" />
@@ -156,17 +162,26 @@ export default function CartPage() {
 
       {/* ── Actions ────────────────────────────────────────────────────── */}
       <div className="mt-8 flex flex-col items-center gap-3">
-        <Link href="/checkout" className="w-full max-w-sm">
+        <Link href={checkoutHref} className="w-full max-w-sm">
           <Button className="w-full rounded-full py-5 font-semibold text-sm bg-primary hover:bg-primary/90">
             Proceed to Checkout
           </Button>
         </Link>
-        <Link href="/">
+        <Link href={homeHref}>
           <button className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
             ← Continue shopping
           </button>
         </Link>
       </div>
     </section>
+  );
+}
+
+// useTenantId uses useSearchParams which requires a Suspense boundary
+export default function CartPage() {
+  return (
+    <Suspense>
+      <CartPageInner />
+    </Suspense>
   );
 }

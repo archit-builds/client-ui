@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,6 +23,7 @@ import {
   selectCartItems,
   selectCartTotal,
 } from "@/lib/store/features/cart/cartSlice";
+import { useTenantId } from "@/lib/hooks/useTenantId";
 
 type PaymentMode = "card" | "cash";
 
@@ -100,7 +101,7 @@ function InputField({
 }
 
 /* ─── main component ──────────────────────────────────────────────────────── */
-export default function CheckoutPage() {
+function CheckoutPageInner() {
   const router = useRouter();
 
   /* ── auth guard ───────────────────────────────────────────────── */
@@ -124,6 +125,11 @@ export default function CheckoutPage() {
 
   const items = useAppSelector(selectCartItems);
   const grandTotal = useAppSelector(selectCartTotal);
+  const tenantId = useTenantId();
+
+  // Build tenantId-aware hrefs so the restaurant context is retained
+  const homeHref = tenantId ? `/?tenantId=${tenantId}` : "/";
+  const cartHref = tenantId ? `/cart?tenantId=${tenantId}` : "/cart";
 
   const [form, setForm] = useState<CheckoutForm>(INITIAL_FORM);
   const [errors, setErrors] = useState<Partial<CheckoutForm>>({});
@@ -176,7 +182,7 @@ export default function CheckoutPage() {
         <p className="text-gray-400 max-w-xs">
           Your cart is empty. Add some items first!
         </p>
-        <Link href="/">
+        <Link href={homeHref}>
           <Button className="mt-2 rounded-full px-6">Browse Menu</Button>
         </Link>
       </div>
@@ -204,7 +210,7 @@ export default function CheckoutPage() {
           </span>
           ! Your order is confirmed and will be on its way soon.
         </p>
-        <Link href="/">
+        <Link href={homeHref}>
           <Button className="mt-3 rounded-full px-8 py-5 text-sm font-semibold">
             Back to Home
           </Button>
@@ -223,7 +229,7 @@ export default function CheckoutPage() {
       {/* ── Page header ────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 mb-8">
         <Link
-          href="/cart"
+          href={cartHref}
           className="p-2 rounded-full hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft size={20} className="text-gray-500" />
@@ -554,7 +560,7 @@ export default function CheckoutPage() {
                 <Lock size={10} /> Secure & encrypted checkout
               </p>
 
-              <Link href="/cart">
+              <Link href={cartHref}>
                 <button
                   type="button"
                   className="w-full mt-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
@@ -567,5 +573,14 @@ export default function CheckoutPage() {
         </div>
       </form>
     </section>
+  );
+}
+
+// useTenantId uses useSearchParams which requires a Suspense boundary
+export default function CheckoutPage() {
+  return (
+    <Suspense>
+      <CheckoutPageInner />
+    </Suspense>
   );
 }
