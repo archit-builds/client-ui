@@ -4,9 +4,18 @@ import { useActionState } from "react";
 import { loginAction } from "@/lib/actions/login";
 import { initialState } from "@/lib/actions/login-types";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+/* ─────────────────────────────────────────────────────────────────────────────
+   LoginForm — inner component so useSearchParams is inside a Suspense boundary
+───────────────────────────────────────────────────────────────────────────── */
+function LoginForm() {
+  const searchParams = useSearchParams();
+  // Middleware injects ?returnTo=/checkout (or any protected route).
+  // After a successful login we redirect the user back there instead of "/".
+  const returnTo = searchParams.get("returnTo") ?? "/";
+
   const [state, formAction, isPending] = useActionState(
     loginAction,
     initialState
@@ -17,10 +26,10 @@ export default function LoginPage() {
       setTimeout(() => {
         // Hard navigation — ensures the server re-renders Header with the
         // new accessToken cookie, switching Login → Logout button.
-        window.location.href = "/";
+        window.location.href = returnTo;
       }, 1000);
     }
-  }, [state]);
+  }, [state, returnTo]);
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[oklch(94.409%_0.00973_16.723)]">
@@ -287,5 +296,16 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LoginPage — wraps LoginForm in Suspense (required by useSearchParams)
+───────────────────────────────────────────────────────────────────────────── */
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

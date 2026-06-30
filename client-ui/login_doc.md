@@ -725,3 +725,80 @@ loginAction() — runs on SERVER
 > **When a Next.js server action calls an upstream API that sets cookies via `Set-Cookie` response headers, those cookies are NOT automatically forwarded to the browser.** You must manually read them with `response.headers.getSetCookie()` and re-set them via `next/headers` `cookies()`.
 
 This is different from a traditional browser→server setup where `Set-Cookie` headers go directly to the browser. In a server action, the fetch happens **server-to-server**, so Next.js is the one receiving those headers — and it must explicitly pass them along.
+
+---
+
+## Part 4 — Silent Token Refresh (Background Scheduler)
+
+### The Challenge
+
+Our auth system uses two tokens:
+1. **`accessToken`**: Short-lived (expires in 1 hour).
+2. **`refreshToken`**: Long-lived (expires in 1 year).
+
+When the `accessToken` expires, the user shouldn't be abruptly logged out. Instead, the frontend should use the `refreshToken` to silently request a new `accessToken` behind the scenes.
+
+Because both tokens are `httpOnly`, JavaScript cannot directly read them to check their expiration dates. We cannot do `jwt.decode(document.cookie.accessToken)` in the browser.
+
+### The Solution: A Three-Part Architecture
+
+We implemented a proactive scheduled refresh using three components:
+
+#### 1. A Readable Expiry Cookie (`lib/actions/login.ts`)
+During login, we intercept the new `accessToken`, decode its JWT payload server-side (where we have access to it before sending it to the browser), and extract the `exp` claim.
+
+We then set a **non-httpOnly** companion cookie called `tokenExpiresAt`. This cookie contains no sensitive data — just a UNIX timestamp — meaning the browser's JavaScript is allowed to read it.
+
+#### 2. The Route Handler (`app/api/auth/refresh/route.ts`)
+We created a Next.js API route that acts as a secure proxy.
+- It reads the `httpOnly` `refreshToken` cookie.
+- It forwards it to the upstream auth service (`POST /api/auth/auth/refresh`).
+- If successful, it receives the new `Set-Cookie` headers, decodes the new `accessToken`'s expiry, and forwards all the cookies (including a new `tokenExpiresAt`) to the browser.
+- If it fails (e.g., the refresh token itself is expired or revoked), it explicitly deletes the cookies to clear the dead session.
+
+#### 3. The Background Scheduler (`components/custom/token-refresher.tsx`)
+We built a silent `"use client"` component and mounted it globally inside `app/layout.tsx`.
+
+1. On mount, it reads the `tokenExpiresAt` cookie via `document.cookie`.
+2. It calculates how many milliseconds are left until expiration.
+3. It sets a `setTimeout` to fire **60 seconds before** the token actually expires.
+4. When the timer fires, it calls our Next.js Route Handler (`/api/auth/refresh`).
+5. Upon success, the route handler updates the cookies, and the `TokenRefresher` loops recursively, reading the *new* `tokenExpiresAt` and scheduling the *next* refresh.
+
+If the refresh fails, it redirects the user to `/login`, gracefully handling the end of their 1-year session limit.
+
+### Flow Diagram
+
+```
+[Server] loginAction 
+   ├── issues HttpOnly accessToken & refreshToken
+   └── sets Readable tokenExpiresAt=1750000000
+          │
+          ▼
+[Client] <TokenRefresher /> mounts
+   ├── Reads tokenExpiresAt
+   ├── Math: 1750000000 - Date.now() - 60s
+   └── Sets setTimeout() for 59 minutes from now
+          │
+          ▼
+(59 minutes pass silently...)
+          │
+          ▼
+[Client] setTimeout triggers
+   └── fetch("/api/auth/refresh")
+          │
+          ▼
+[Server] Route Handler 
+   ├── Forwards HttpOnly refreshToken to Auth Service
+   └── Auth Service returns NEW accessToken & refreshToken
+          │
+          ▼
+[Server] Route Handler 
+   ├── Updates HttpOnly cookies
+   ├── Sets NEW tokenExpiresAt=1750003600
+   └── Returns 200 OK
+          │
+          ▼
+[Client] <TokenRefresher /> 
+   └── Reads new tokenExpiresAt, schedules next timeout!
+```

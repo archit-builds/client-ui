@@ -4,6 +4,20 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import type { LoginState } from "./login-types";
 
+// Helper: decode JWT payload (base64url → JSON) — no signature verification needed
+function parseJwtExp(token: string): number | null {
+  try {
+    const [, payload] = token.split(".");
+    // JWT uses base64url — Node's Buffer handles it
+    const decoded = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8")
+    );
+    return typeof decoded.exp === "number" ? decoded.exp : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function loginAction(
   _prevState: LoginState,
   formData: FormData
@@ -46,6 +60,7 @@ export async function loginAction(
 
     // getSetCookie() returns each cookie as a separate string (Node 18+)
     const setCookies: string[] = response.headers.getSetCookie?.() ?? [];
+    let tokenExpiresAt: number | null = null;
 
     for (const cookieStr of setCookies) {
       // e.g. "accessToken=eyJ...; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600"
@@ -54,6 +69,10 @@ export async function loginAction(
       const eqIndex = nameValue.indexOf("=");
       const name = nameValue.substring(0, eqIndex);
       const value = nameValue.substring(eqIndex + 1);
+
+      if (name === "accessToken") {
+        tokenExpiresAt = parseJwtExp(value);
+      }
 
       const options: Parameters<typeof cookieStore.set>[2] = { path: "/" };
 
@@ -74,6 +93,14 @@ export async function loginAction(
       }
 
       cookieStore.set(name, value, options);
+    }
+
+    if (tokenExpiresAt) {
+      cookieStore.set("tokenExpiresAt", String(tokenExpiresAt), {
+        httpOnly: false, // JS must be able to read this
+        sameSite: "strict",
+        path: "/",
+      });
     }
 
     // Bust server-component cache so Header re-renders with the new session

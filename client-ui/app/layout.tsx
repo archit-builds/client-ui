@@ -3,6 +3,7 @@ import { Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/custom/header";
 import StoreProvider from "./StoreProvider";
+import TokenRefresher from "@/components/custom/token-refresher";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -26,6 +27,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${manrope.variable} font-[family-name:var(--font-manrope)] antialiased`}
       >
+        <TokenRefresher />
         <Header />
         <main>{children}</main>
       </body>

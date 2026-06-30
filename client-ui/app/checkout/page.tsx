@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -42,6 +43,8 @@ const INITIAL_FORM: CheckoutForm = {
   paymentMode: "card",
   comment: "",
 };
+
+
 
 /* ─── tiny helper ─────────────────────────────────────────────────────────── */
 function InputField({
@@ -98,6 +101,27 @@ function InputField({
 
 /* ─── main component ──────────────────────────────────────────────────────── */
 export default function CheckoutPage() {
+  const router = useRouter();
+
+  /* ── auth guard ───────────────────────────────────────────────── */
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/self", { cache: "no-store" });
+        if (!res.ok) {
+          router.replace("/login");
+        } else {
+          setAuthChecked(true);
+        }
+      } catch {
+        router.replace("/login");
+      }
+    }
+    checkAuth();
+  }, [router]);
+
   const items = useAppSelector(selectCartItems);
   const grandTotal = useAppSelector(selectCartTotal);
 
@@ -129,6 +153,16 @@ export default function CheckoutPage() {
       // TODO: wire to backend
       setSubmitted(true);
     }
+  }
+
+  /* ── auth loading state ──────────────────────────────────────── */
+  if (!authChecked) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+        <p className="text-sm text-gray-400 font-medium">Verifying your session…</p>
+      </div>
+    );
   }
 
   /* ── empty cart guard ─────────────────────────────────────────── */
@@ -453,7 +487,7 @@ export default function CheckoutPage() {
                       <Image
                         src={
                           item.image.startsWith("http") ||
-                          item.image.startsWith("/")
+                            item.image.startsWith("/")
                             ? item.image
                             : `/${item.image}`
                         }
