@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server";
  * Routes that require an authenticated session.
  * The matcher below keeps this in sync automatically.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const accessToken = request.cookies.get("accessToken")?.value;
 
   if (!accessToken) {

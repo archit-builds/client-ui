@@ -24,6 +24,8 @@ import {
   selectCartTotal,
 } from "@/lib/store/features/cart/cartSlice";
 import { useTenantId } from "@/lib/hooks/useTenantId";
+import { useQuery } from "@tanstack/react-query";
+import { getCustomer, Customer } from "@/app/http/api";
 
 type PaymentMode = "card" | "cash";
 
@@ -68,6 +70,7 @@ function InputField({
   onChange: (v: string) => void;
   required?: boolean;
   error?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
@@ -89,9 +92,11 @@ function InputField({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm text-gray-800 placeholder:text-gray-400
-            bg-white transition-all duration-200 outline-none
+          disabled
+          className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm text-gray-400 placeholder:text-gray-400
+            transition-all duration-200 outline-none
             focus:ring-2 focus:ring-primary/25 focus:border-primary
+           
             ${error ? "border-red-400 ring-2 ring-red-100" : "border-gray-200 hover:border-gray-300"}`}
         />
       </div>
@@ -134,6 +139,36 @@ function CheckoutPageInner() {
   const [form, setForm] = useState<CheckoutForm>(INITIAL_FORM);
   const [errors, setErrors] = useState<Partial<CheckoutForm>>({});
   const [submitted, setSubmitted] = useState(false);
+
+  /* ── Fetch customer profile (TanStack Query) ──────────────────── */
+  const {
+    data: customer,
+    isLoading: isCustomerLoading,
+    isError: isCustomerError,
+  } = useQuery<Customer>({
+    queryKey: ["customer"],
+    queryFn: async () => {
+      const res = await getCustomer();
+      return res.data;
+    },
+    // Only run after auth is confirmed — avoids a 401 race
+    enabled: authChecked,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 min — customer data doesn't change often
+  });
+
+  // Auto-populate form fields once customer data arrives
+  useEffect(() => {
+    if (!customer) return;
+    setForm((prev) => ({
+      ...prev,
+      firstName: prev.firstName || customer.firstName,
+      lastName:  prev.lastName  || customer.lastName,
+      email:     prev.email     || customer.email,
+      // Pre-fill address from the first saved address, if any
+      address: prev.address || (customer.addresses?.[0]?.text ?? ""),
+    }));
+  }, [customer]);
 
   const set = (field: keyof CheckoutForm) => (value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -277,44 +312,70 @@ function CheckoutPageInner() {
                   <User size={14} className="text-primary" />
                 </span>
                 Personal Information
+                {isCustomerLoading && (
+                  <span className="ml-auto text-xs text-gray-400 font-normal flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin inline-block" />
+                    Loading your profile…
+                  </span>
+                )}
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <InputField
-                  id="firstName"
-                  label="First Name"
-                  icon={User}
-                  placeholder="John"
-                  value={form.firstName}
-                  onChange={set("firstName")}
-                  required
-                  error={errors.firstName}
-                />
-                <InputField
-                  id="lastName"
-                  label="Last Name"
-                  icon={User}
-                  placeholder="Doe"
-                  value={form.lastName}
-                  onChange={set("lastName")}
-                  required
-                  error={errors.lastName}
-                />
-              </div>
+              {/* Non-blocking error banner — user can still fill the form manually */}
+              {isCustomerError && (
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                  Could not load your saved profile. Please fill in your details below.
+                </p>
+              )}
 
-              <div className="mt-4">
-                <InputField
-                  id="email"
-                  label="Email Address"
-                  icon={Mail}
-                  type="email"
-                  placeholder="john@example.com"
-                  value={form.email}
-                  onChange={set("email")}
-                  required
-                  error={errors.email}
-                />
-              </div>
+              {/* Skeleton shimmer while customer data is loading */}
+              {isCustomerLoading ? (
+                <div className="space-y-4 animate-pulse">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="h-11 bg-gray-100 rounded-xl" />
+                    <div className="h-11 bg-gray-100 rounded-xl" />
+                  </div>
+                  <div className="h-11 bg-gray-100 rounded-xl mt-4" />
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InputField
+                      id="firstName"
+                      label="First Name"
+                      icon={User}
+                      placeholder="John"
+                      value={form.firstName}
+                      onChange={set("firstName")}
+                      disabled
+                      error={errors.firstName}
+                    />
+                    <InputField
+                      id="lastName"
+                      label="Last Name"
+                      icon={User}
+                      placeholder="Doe"
+                      value={form.lastName}
+                      onChange={set("lastName")}
+                      disabled
+                      error={errors.lastName}
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    <InputField
+                      id="email"
+                      label="Email Address"
+                      icon={Mail}
+                      type="email"
+                      placeholder="john@example.com"
+                      value={form.email}
+                      onChange={set("email")}
+                      disabled
+                      error={errors.email}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Delivery Address */}
